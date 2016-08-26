@@ -1,0 +1,91 @@
+
+
+首先，利用空间面板模型拟合数据的主要思路就是首先利用Moran I指数对数据是否具有空间相关性进行检验。
+
+其次，进行模型选择LM检验，即利用LM检验选择SAR（SLM）模型或者SEM模型。
+
+再者，利用LR检验和Hausman检验对模型的固定效应、随机效应模型进行选择。
+
+最后，选择确定模型的进行数据拟合。
+
+** Moran I指数计算
+T=10;%number of time periods
+N=30;%number of regions
+w=normw(weight);%weight matrix
+y=data(:,[1]);
+x=data(:,[2,3,4,5,6,7,8,9,10,11,12]);
+xconstant=ones(N*T,1);
+[nobs K]=size(x);
+I=eye(T);
+W1=kron(I,w);
+res=moran(y,[xconstant x],W1);
+prt(res);
+
+** 模型的LM检验统计量  %%%这个检验主要是选择误差模型还是滞后模型。
+model=1;
+[ywith,xwith,meanny,meannx,meanty,meantx]=demean(y,x,N,T,model);
+results=ols(ywith,xwith);
+vnames=strvcat('y','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11'); % should be changed if x is changed
+prt_reg(results,vnames);
+FE=meanny-meannx*results.beta; % including the constant term
+yme = y - mean(y);
+ee=ones(T,1);
+error=y-kron(ee,FE)-x*results.beta;
+rsqr1 = error'*error;
+rsqr2 = yme'*yme;
+FE_rsqr2 = 1.0 - rsqr1/rsqr2 % r-squared including fixed effects
+sige=results.sige*((nobs-K)/nobs);
+loglikfe=-nobs/2*log(2*pi*sige)-1/(2*sige)*results.resid'*results.resid
+LMsarsem_panel(results,w,ywith,xwith); % (Robust) LM tests
+% --------------------固定效应检验----------------------------------------
+% spatial fixed effects + spatially lagged dependent variable
+info.lflag=0; % required for exact results
+info.model=1;
+info.fe=0; % no print intercept and spatial fixed effects
+results=sar_panel_FE(y,x,w,T,info); 
+vnames=strvcat('y','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11'); % shuld be changed if x is changed
+prt(results,vnames,1);
+blagfe=[results.beta;results.rho];
+covblagfe=results.cov;
+% LR-test for joint significance spatial fixed effects
+logliklagfe=results.lik;
+info.model=0;
+results=sar_panel_FE(y,x,w,T,info); 
+logliklag=results.lik;
+LR=-2*(logliklag-logliklagfe);
+dof=N;
+probability=1-chis_prb(LR,dof);
+% Note: probability > 0.05 implies rejection of spatial fixed effects
+fprintf(1,'LR-test joint significance spatial fixed effects, degrees of freedom and probability = %9.4f,%6d,%9.4f\n',LR,dof,probability);
+
+%-------------------随机效应检验------------------------------
+clear info.model;
+info.model=1;
+results=sar_panel_RE(y,[xconstant x],w,T,info); 
+vnames=strvcat('y','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11'); % should be changed if x is changed
+prt(results,vnames,1);
+blagre=[results.beta(2:end);results.rho]; % exclude constant
+covblagre=results.cov(2:end,2:end); % exclude constant
+% LR-test for significance spatial random effects (note logliklag is already available)
+logliklagre=results.lik;
+LR=-2*(logliklag-logliklagre);
+dof=1;
+probability=1-chis_prb(LR,dof);
+% Note: probability > 0.05 implies rejection of spatial fixed effects
+fprintf(1,'LR-test significance spatial random effects, degrees of freedom and probability = %9.4f,%6d,%9.4f \n',LR,dof,probability);
+% -------------Hausman检验------------------------------------
+% Hausman test FE versus RE of model + spatially lagged dependent variable
+hausman=(blagfe-blagre)'*inv(covblagre-covblagfe)*(blagfe-blagre);
+dof=length(blagfe);
+probability=1-chis_prb(abs(hausman),dof); 
+% Note: probability > 0.05 implies rejection of random effects model in favor of fixed effects model
+fprintf(1,'Hausman test-statistic, degrees of freedom and probability = %9.4f,%6d,%9.4f \n',hausman,dof,probability);
+
+
+%-----------------采用sar固定效应模型拟合---------------------------
+info.lflag=0; % required for exact results
+info.model=0;
+info.fe=0; % no print intercept and spatial fixed effects
+results=sar_panel_FE(y,x,w,T,info); 
+vnames=strvcat('y','x1','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11'); % should be changed if x is changed
+prt(results,vnames,1);
