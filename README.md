@@ -3,9 +3,6 @@
 
 # 上传文件
 > git add .
-  
-  git commit -m "abc"
-  
-  git remote set-url origin git@github.com:****/****.github.io.git
-  
+  git commit -m "add code"
+  git remote set-url origin git@github.com:****/****.github.io.git 
   git push origin master
