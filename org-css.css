@@ -8,7 +8,7 @@ body {
 
 body {
     font-family:"lucida grande", "lucida sans unicode", lucida, helvetica, "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-    font-size: large;
+    font-size: x-large;
 }
 
 H1 {
@@ -55,6 +55,7 @@ li {
 
 
 blockquote {
+    font-family: 'Source Sans Pro', Tahoma, Geneva, 'STKaiti', 'KaiTi', '楷体', 'SimKai', 'DFKai-SB', 'NSimSun', serif;
     border-left: 4px crimson solid;
     padding-left: 5px;
     margin-left: 20px;
